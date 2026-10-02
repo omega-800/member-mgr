@@ -1,0 +1,14 @@
+result
+.direnv
+.pre-commit-config.yaml
+members.db
+
+debug
+target
+**/*.rs.bk
+**/mutants.out*/
+
+
+# Added by cargo
+
+/target
