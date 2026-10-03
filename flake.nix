@@ -1,5 +1,5 @@
 {
-  description = "rust development environment";
+  description = "member-mgr development environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -67,7 +67,7 @@
         {
           default = pkgs.rustPlatform.buildRustPackage {
             inherit pname;
-            version = "0.1.0";
+            version = "1.0.0";
             src = fs.toSource {
               inherit root;
               fileset = fs.intersection (fs.gitTracked root) (

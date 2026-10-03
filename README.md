@@ -27,7 +27,7 @@ will be written to `./vip.db`
 
 Configurable through env vars:
 
-```
+```sh
 MEMBER_MGR_TOKEN        # Bearer auth token                   default: very-secret-token
 MEMBER_MGR_ADDR         # Address to listen on                default: 0.0.0.0:1234
 MEMBER_MGR_DEFAULT_DB   # DB name if not provided in request  default: members.db
