@@ -12,7 +12,15 @@ rand = { version = "0.10.3", optional = true }
 base64 = { version =  "0.23.1", optional = true }
 serde_json = { version = "1.0.151", optional = true }
 serde = { version = "1.0.229", optional = true }
+lettre = { version = "0.11.23", default-features = false, optional = true, features = [
+    "builder",
+    "smtp-transport",
+    "rustls-tls",
+] }
+dotenvy = { version = "0.15", optional = true }
 
 [features]
-default = ["altcha"]
+default = ["altcha", "mail"]
 altcha = ["dep:altcha", "dep:rand", "dep:serde", "dep:serde_json", "dep:base64"]
+mail = ["dep:lettre"]
+dotenvy = ["dep:dotenvy"]

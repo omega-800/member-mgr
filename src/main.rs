@@ -3,30 +3,77 @@ use std::{collections::HashMap, error::Error};
 use rusqlite::{Connection, params_from_iter};
 use tiny_http::{Request, Response, Server, StatusCode};
 
+use crate::mail::MailConfig;
+
 #[cfg(feature = "altcha")]
 mod altcha;
 
-fn main() {
-    let token =
-        std::env::var("MEMBER_MGR_TOKEN").unwrap_or_else(|_| "very-secret-token".to_string());
-    let use_token = std::env::var("MEMBER_MGR_USE_TOKEN").unwrap_or_else(|_| "no".to_string());
-    let addr = std::env::var("MEMBER_MGR_ADDR").unwrap_or_else(|_| "0.0.0.0:1234".to_string());
-    let db = std::env::var("MEMBER_MGR_DEFAULT_DB").unwrap_or_else(|_| "members.db".to_string());
-    let log = std::env::var("MEMBER_MGR_LOG").unwrap_or_else(|_| "info".to_string());
-    let create = std::env::var("MEMBER_MGR_CREATE_DB").unwrap_or_else(|_| "yes".to_string());
+#[cfg(feature = "mail")]
+mod mail;
 
-    let server = Server::http(&addr).unwrap();
-
-    let log_info = log == "info";
-    let create_db = create == "yes";
-    let use_token = use_token == "yes";
-
-    if log_info {
-        println!("[INFO] Listening on {addr}");
-    }
-
+pub struct Config {
+    token: String,
+    use_token: bool,
+    addr: String,
+    db: String,
+    log_info: bool,
+    create_db: bool,
     #[cfg(feature = "altcha")]
-    let altcha_state = crate::altcha::get_state();
+    hmac_secret: String,
+    #[cfg(feature = "altcha")]
+    hmac_key_secret: String,
+    #[cfg(feature = "mail")]
+    mail_configs: HashMap<String, MailConfig>
+}
+
+impl Config {
+    pub fn new() -> Self {
+        use std::env::var;
+        Self {
+            token: var("MEMBER_MGR_TOKEN").unwrap_or_else(|_| "very-secret-token".to_string()),
+            use_token: var("MEMBER_MGR_USE_TOKEN").unwrap_or_else(|_| "no".to_string()) == "yes",
+            addr: var("MEMBER_MGR_ADDR").unwrap_or_else(|_| "0.0.0.0:1234".to_string()),
+            db: var("MEMBER_MGR_DEFAULT_DB").unwrap_or_else(|_| "members.db".to_string()),
+            log_info: std::env::var("MEMBER_MGR_LOG").unwrap_or_else(|_| "info".to_string())
+                == "info",
+            create_db: std::env::var("MEMBER_MGR_CREATE_DB").unwrap_or_else(|_| "yes".to_string())
+                == "yes",
+
+            hmac_secret: std::env::var("MEMBER_MGR_ALTCHA_HMAC_SECRET")
+                .expect("MEMBER_MGR_ALTCHA_HMAC_SECRET must be set"),
+            hmac_key_secret: std::env::var("MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET")
+                .expect("MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET must be set"),
+
+            from: std::env::var("MEMBER_MGR_FROM").expect("MEMBER_MGR_FROM must be set"),
+            from_name: std::env::var("MEMBER_MGR_FROM_NAME")
+                .expect("MEMBER_MGR_FROM_NAME must be set"),
+            subject: std::env::var("MEMBER_MGR_SUBJECT").expect("MEMBER_MGR_SUBJECT must be set"),
+            body: std::env::var("MEMBER_MGR_BODY").expect("MEMBER_MGR_BODY must be set"),
+            smtp_username: std::env::var("MEMBER_MGR_SMTP_USERNAME")
+                .expect("MEMBER_MGR_SMTP_USERNAME must be set"),
+            smtp_password: std::env::var("MEMBER_MGR_SMTP_PASSWORD")
+                .expect("MEMBER_MGR_SMTP_PASSWORD must be set"),
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn main() {
+    #[cfg(feature = "dotenvy")]
+    dotenvy::dotenv().ok();
+
+    let config = Config::new();
+
+    let server = Server::http(&config.addr).unwrap();
+
+    if config.log_info {
+        println!("[INFO] Listening on {}", config.addr);
+    }
 
     loop {
         let request = match server.recv() {
@@ -37,23 +84,9 @@ fn main() {
             }
         };
 
-        #[cfg(feature = "altcha")]
-        let result = handle_request(
-            request,
-            &token,
-            &db,
-            use_token,
-            log_info,
-            create_db,
-            &altcha_state,
-        );
-
-        #[cfg(not(feature = "altcha"))]
-        let result = handle_request(request, &token, &db, use_token, log_info, create_db);
-
-        if let Err(e) = result {
+        if let Err(e) = handle_request(request, &config) {
             eprintln!("[ERR!] request: {e}");
-        }
+        };
     }
 }
 
@@ -74,23 +107,14 @@ impl std::fmt::Display for SubmitErr {
 
 impl Error for SubmitErr {}
 
-fn handle_request(
-    mut request: Request,
-    token: &str,
-    db: &str,
-    use_token: bool,
-    log_info: bool,
-    create_db: bool,
-
-    #[cfg(feature = "altcha")] altcha_state: &altcha::AltchaState,
-) -> Result<(), Box<dyn Error>> {
-    let authorized = !use_token
+fn handle_request(mut request: Request, config: &Config) -> Result<(), Box<dyn Error>> {
+    let authorized = !config.use_token
         || request
             .headers()
             .iter()
             .find(|header| header.field.equiv("Authorization"))
             .and_then(|header| header.value.as_str().strip_prefix("Bearer "))
-            .is_some_and(|received| received == token);
+            .is_some_and(|received| received == config.token);
 
     if !authorized {
         request.respond(Response::from_string("Unauthorized").with_status_code(StatusCode(401)))?;
@@ -113,7 +137,7 @@ fn handle_request(
     match path.as_str() {
         #[cfg(feature = "altcha")]
         "/challenge" => {
-            crate::altcha::get_challenge(request, altcha_state)?;
+            crate::altcha::get_challenge(request, config)?;
             Ok(())
         }
         "/submit" => {
@@ -133,25 +157,29 @@ fn handle_request(
                 }
             };
 
-            if log_info {
+            if config.log_info {
                 println!("[INFO] received: {fields:?}");
             }
 
             #[cfg(feature = "altcha")]
-            if let Err(e) = crate::altcha::post_submit(altcha_state, &mut fields) {
+            if let Err(e) = crate::altcha::post_submit(config, &mut fields) {
                 request.respond(Response::from_string(&e.2).with_status_code(StatusCode(e.0)))?;
                 return Err(e.into());
             };
 
             let db_name = fields.remove("db_name");
             if fields.is_empty() {
-                if log_info {
+                if config.log_info {
                     println!("[INFO] received no data");
                 }
             } else {
-                insert_sql(&db_name.unwrap_or(db.to_string()), &fields, create_db)?;
+                insert_sql(
+                    &db_name.unwrap_or(config.db.to_string()),
+                    &fields,
+                    config.create_db,
+                )?;
 
-                if log_info {
+                if config.log_info {
                     println!("[INFO] wrote: {fields:?}");
                 }
 
@@ -199,6 +227,10 @@ fn insert_sql(
         columns.join(", "),
         placeholders.join(", "),
     );
+
+    // TODO:
+    // #[cfg(feature = "mail")]
+    // send_mail();
 
     db.execute(&sql, params_from_iter(values))
 }
