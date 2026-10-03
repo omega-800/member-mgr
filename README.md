@@ -4,24 +4,54 @@ Minimal HTTP server with a single REST endpoint to add members to a sqlite db.
 
 ## usage
 
-Send SQL insert request formatted as `key=value` separated by `&`.
+Send "SQL insert request" formatted as `application/x-www-form-urlencoded`.
 
-E.g.
+### simple example
+
 ```sh
-curl localhost:1234 -X POST -H 'Authorization: Bearer <token>' -d"name=depressed&email=dead@moon.com"
+curl http://localhost:1234/submit \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data "name=depressed&email=dead@moon.com"
 ```
-==
+Will be executed as
 ```sql
 INSERT INTO members (name, email) VALUES ('depressed', 'dead@moon.com');
 ```
+
+### custom db
 
 If you provide `db_name` as a key, that will be used as the sqlite path.
 
 E.g.
 ```sh
-curl localhost:1234 -X POST -H 'Authorization: Bearer <token>' -d"db_name=vip.db&name=depressed&email=dead@moon.com"
+curl http://localhost:1234/submit \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data "db_name=vip.db&name=depressed&email=dead@moon.com"
 ```
 will be written to `./vip.db`
+
+### auth
+
+Set `MEMBER_MGR_TOKEN=<your-token>` and `MEMBER_MGR_USE_TOKEN=yes` to use Bearer Auth.
+
+```sh
+curl http://localhost:1234/submit \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -H 'Authorization: Bearer <token>' \
+  --data "name=depressed&email=dead@moon.com"
+```
+
+### altcha
+
+Set `MEMBER_MGR_ALTCHA_HMAC_SECRET` and `MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET` to use altcha PoW. Set the altcha token in the `altchaToken` field.
+
+```sh
+curl http://localhost:1234/challenge 
+# solve your challenge
+curl http://localhost:1234/submit \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data "altchaToken=<your-token>&name=depressed&email=dead@moon.com"
+```
 
 ## config
 
@@ -29,10 +59,14 @@ Configurable through env vars:
 
 ```sh
 MEMBER_MGR_TOKEN        # Bearer auth token                   default: very-secret-token
+MEMBER_MGR_USE_TOKEN    # If Bearer auth should be used       default: no
 MEMBER_MGR_ADDR         # Address to listen on                default: 0.0.0.0:1234
 MEMBER_MGR_DEFAULT_DB   # DB name if not provided in request  default: members.db
 MEMBER_MGR_LOG          # Set log level to info or err        default: info
 MEMBER_MGR_CREATE_DB    # If members table should be created  default: yes
+
+MEMBER_MGR_ALTCHA_HMAC_SECRET
+MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET
 ```
 
 ## nix
@@ -71,3 +105,7 @@ docker run --rm \
   -e MEMBER_MGR_TOKEN='secret' \
   member-mgr
 ```
+
+### features
+
+- altcha
