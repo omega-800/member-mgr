@@ -6,3 +6,12 @@ edition = "2024"
 [dependencies]
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 tiny_http = "0.12.0"
+lettre = { version = "0.11.23", default-features = false, optional = true, features = [
+    "builder",
+    "smtp-transport",
+    "rustls-tls",
+] }
+
+[features]
+default = ["mail"]
+mail = ["dep:lettre"]

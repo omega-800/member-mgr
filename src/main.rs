@@ -4,7 +4,8 @@ use rusqlite::{Connection, params_from_iter};
 use tiny_http::{Request, Response, Server, StatusCode};
 
 fn main() {
-    let token = std::env::var("MEMBER_MGR_TOKEN").unwrap_or_else(|_| "very-secret-token".to_string());    
+    let token =
+        std::env::var("MEMBER_MGR_TOKEN").unwrap_or_else(|_| "very-secret-token".to_string());
     let addr = std::env::var("MEMBER_MGR_ADDR").unwrap_or_else(|_| "0.0.0.0:1234".to_string());
     let db = std::env::var("MEMBER_MGR_DEFAULT_DB").unwrap_or_else(|_| "members.db".to_string());
     let log = std::env::var("MEMBER_MGR_LOG").unwrap_or_else(|_| "info".to_string());
@@ -17,6 +18,15 @@ fn main() {
 
     if log_info {
         println!("[INFO] Listening on {addr}");
+    }
+    #[cfg(feature = "mail")]
+    {
+    // from
+    // from_name
+    // subject
+    // body
+    // smtp_username
+    // smtp_password
     }
 
     loop {
@@ -123,5 +133,43 @@ fn insert_sql(
         placeholders.join(", "),
     );
 
+    // TODO:
+    // #[cfg(feature = "mail")]
+    // send_mail();
+
     db.execute(&sql, params_from_iter(values))
+}
+
+#[cfg(feature = "mail")]
+fn send_mail(
+    from: &str,
+    from_name: &str,
+    to: &str,
+    to_name: &str,
+    subject: &str,
+    body: &str,
+    smtp_username: &str,
+    smtp_password: &str,
+) -> Result<lettre::transport::smtp::response::Response, Box<dyn Error>> {
+    use lettre::{
+        Message, SmtpTransport, Transport,
+        message::{Mailbox, header::ContentType},
+        transport::smtp::authentication::Credentials,
+    };
+
+    let email = Message::builder()
+        .from(Mailbox::new(Some(from_name.to_owned()), from.parse()?))
+        .to(Mailbox::new(Some(to_name.to_owned()), to.parse()?))
+        .subject(subject)
+        .header(ContentType::TEXT_PLAIN)
+        .body(String::from(body))?;
+
+    let creds = Credentials::new(smtp_username.to_owned(), smtp_password.to_owned());
+
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
+        .credentials(creds)
+        .build();
+
+    Ok(mailer.send(&email)?)
 }
