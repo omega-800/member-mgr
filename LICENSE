@@ -1,0 +1,146 @@
+Authoritalibre License v1.0
+===========================
+
+Copyright (C) 2026 Georgiy Shevoroshkin
+--------------------------------
+
+The Authoritalibre License is a free, strong, restrictive copyleft license.
+
+1. Definitions
+--------------
+
+1.1. "Ethos" 
+    means the distinctive guiding principles, style, intent, and/or cultural or 
+    philosophical positioning embodied by the Work (including how the Work 
+    frames its purpose, conventions, and audience-facing messaging).
+
+1.2. "Work" 
+    means the original work covered by this License and all files included with 
+    it at the time of distribution.
+
+1.3. "Derivative Work" 
+    means any work that is based upon, recasts, transforms, or adapts the Work.
+    Examples include adding, deleting or modifying source code.
+
+1.4. "Incorporation" 
+    means any inclusion, reuse, embedding, or combination of portions of the 
+    Work into another software item.
+    Examples include using the Work as an implementation dependency, bundling 
+    portions of the Work, or building a software item using a language, 
+    framework, or library derived from the Work.
+
+1.5. "Meaningfully Inspired" 
+    means any work for which the author reasonably drew on ideas, structure, 
+    naming conventions, architecture, implementation patterns or ethos from the 
+    Work such that a knowledgeable person could recognize influence from the 
+    Work, even if code is not directly copied.
+
+1.6. "Software Item" 
+    means any program, script, library, data format, model, or other 
+    computational artifact.
+
+
+2. License Grant and Acceptance
+-------------------------------
+
+This License grants you a non-exclusive, worldwide, royalty-free right to use, 
+copy, modify, and distribute the Work, provided that you agree to and comply 
+with all terms and conditions of this License.
+
+By distributing the work in whole or in part, or distributing derivative works, 
+or distributing software items built with, derived from, adapted from, or 
+meaningfully inspired by the Work, you accept this License.
+
+3. Copyleft Requirement
+-----------------------
+
+Any Software Item that is:
+
+(a) a Derivative Work, or
+
+(b) includes Incorporation of the Work, or
+
+(c) is built with the Work, or
+
+(d) is meaningfully inspired by the Work,
+
+must be licensed under this same License (Authoritalibre License v1.0 or a 
+later version released by the copyright holder under the same name).
+
+You may not distribute any such Software Item under terms that are more 
+permissive, additional restrictions, proprietary terms, or incompatible 
+licenses.
+
+4. Distribution Conditions
+--------------------------
+
+When you distribute the Work or any Software Item subject to Section 3, you 
+must:
+
+4.1. Provide a copy of this License with the distribution.
+
+4.2. Clearly identify the Work and the modifications you made (if any).
+
+4.3. Provide the complete corresponding source code for the distributed 
+     Software Item, including build scripts and files needed to reproduce the 
+     distributed form.
+
+4.4. If you distribute only an executable or compiled form, you still must make 
+     the corresponding source available under the terms of this License.
+
+5. No Additional Restrictions
+-----------------------------
+
+You may not add legal or technical restrictions (including DRM, EULA overlays, 
+or distribution locks) that would prevent recipients from exercising the rights 
+granted by this License.
+
+6. Termination
+--------------
+
+If you breach this License, your rights under this License terminate 
+automatically. However, if you cure the breach within a reasonable time after 
+becoming aware of it, the copyright holder may reinstate your rights (at their 
+discretion).
+
+************************************************************************
+*                                                                      *
+*  7. Disclaimer of Warranty                                           *
+*  -------------------------                                           *
+*                                                                      *
+*  Covered Software is provided under this License on an "as is"       *
+*  basis, without warranty of any kind, either expressed, implied, or  *
+*  statutory, including, without limitation, warranties that the       *
+*  Covered Software is free of defects, merchantable, fit for a        *
+*  particular purpose or non-infringing. The entire risk as to the     *
+*  quality and performance of the Covered Software is with You.        *
+*  Should any Covered Software prove defective in any respect, You     *
+*  (not any Contributor) assume the cost of any necessary servicing,   *
+*  repair, or correction. This disclaimer of warranty constitutes an   *
+*  essential part of this License. No use of any Covered Software is   *
+*  authorized under this License except under this disclaimer.         *
+*                                                                      *
+************************************************************************
+
+************************************************************************
+*                                                                      *
+*  8. Limitation of Liability                                          *
+*  --------------------------                                          *
+*                                                                      *
+*  Under no circumstances and under no legal theory, whether tort      *
+*  (including negligence), contract, or otherwise, shall any           *
+*  Contributor, or anyone who distributes Covered Software as          *
+*  permitted above, be liable to You for any direct, indirect,         *
+*  special, incidental, or consequential damages of any character      *
+*  including, without limitation, damages for lost profits, loss of    *
+*  goodwill, work stoppage, computer failure or malfunction, or any    *
+*  and all other commercial damages or losses, even if such party      *
+*  shall have been informed of the possibility of such damages. This   *
+*  limitation of liability shall not apply to liability for death or   *
+*  personal injury resulting from such party's negligence to the       *
+*  extent applicable law prohibits such limitation. Some               *
+*  jurisdictions do not allow the exclusion or limitation of           *
+*  incidental or consequential damages, so this exclusion and          *
+*  limitation may not apply to You.                                    *
+*                                                                      *
+************************************************************************
