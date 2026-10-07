@@ -57,7 +57,9 @@ curl http://localhost:1234/submit \
 
 With the `mail` feature, a mail is sent to the `email` field of every submission. Sending is best-effort: if it fails, the member is still saved and the error is logged.
 
-Configure through `MAIL_CFG_<NAME>` env vars. `<NAME>` is either `default` or a recipient address (lowercased) to override the default config for specific recipients. The value is a `;`-separated list of `key=value` pairs:
+Configure through `MAIL_CFG_<NAME>` env vars. `<NAME>` is either `default` or a sqlite db name (lowercased) to override the default config for submissions written to that db. The value is a `;`-separated list of `key=value` pairs.
+
+Note: shells cannot set env vars whose names contain `.` or other special characters, so for db names like `members.db` set the var in a `.env` file (see the `dotenvy` feature), a service manager, or docker's `-e`.
 
 ```sh
 MAIL_CFG_DEFAULT='from=you@example.com;subject=Welcome {{name}};body_path=./welcome.txt;smtp_username=you@example.com;smtp_password=<app-password>'

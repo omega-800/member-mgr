@@ -191,22 +191,18 @@ fn handle_request(mut request: Request, config: &Config) -> Result<(), Box<dyn E
                 return Err(e.into());
             };
 
-            let db_name = fields.remove("db_name");
+            let db_name = fields.remove("db_name").unwrap_or_else(|| config.db.clone());
             if fields.is_empty() {
                 if config.log_info {
                     println!("[INFO] received no data");
                 }
             } else {
-                insert_sql(
-                    &db_name.unwrap_or(config.db.to_string()),
-                    &fields,
-                    config.create_db,
-                )?;
+                insert_sql(&db_name, &fields, config.create_db)?;
 
                 #[cfg(feature = "mail")]
                 if let Some(email) = fields.get("email") {
                     let name = fields.get("name").cloned().unwrap_or_default();
-                    if let Err(err) = crate::mail::send_mail(config, &name, email, &fields) {
+                    if let Err(err) = crate::mail::send_mail(config, &name, email, &db_name, &fields) {
                         eprintln!("[ERR!] mail to {email}: {err}");
                     }
                 }

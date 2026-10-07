@@ -1,8 +1,9 @@
 //! Sends plain-text mails for submissions containing an `email` field.
 //!
 //! Mailing is configured via `MAIL_CFG_<NAME>` environment variables, where `<NAME>`
-//! is either `default` or a lowercased recipient address to override the default
-//! for specific recipients. The value is a `;`-separated list of `key=value` pairs, e.g.:
+//! is either `default` or a lowercased sqlite database name to override the default
+//! for submissions written to that database. The value is a `;`-separated list of
+//! `key=value` pairs, e.g.:
 //!
 //! ```sh
 //! MAIL_CFG_DEFAULT='from=you@example.com;subject=Welcome {{name}};body_path=./welcome.txt'
@@ -168,7 +169,8 @@ fn send_one(
 }
 
 /// Sends a mail to `to` (display name `to_name`) using the mail config matching the
-/// lowercased recipient address, falling back to the `default` config.
+/// lowercased name of the sqlite database `db` the submission was written to, falling
+/// back to the `default` config.
 ///
 /// If the matching mail config defines `additional_*` fields, a second mail is
 /// always sent to that fixed recipient as well. The subject and body file of each
@@ -182,13 +184,14 @@ pub fn send_mail(
     config: &Config,
     to_name: &str,
     to: &str,
+    db: &str,
     data: &HashMap<String, String>,
 ) -> Result<(), Box<dyn Error>> {
     let mail_config = config
         .mail_configs
-        .get(&to.to_lowercase())
+        .get(&db.to_lowercase())
         .or_else(|| config.mail_configs.get("default"))
-        .ok_or_else(|| format!("no mail config found for {to}"))?;
+        .ok_or_else(|| format!("no mail config found for db {db}"))?;
 
     let mailer = build_mailer(mail_config)?;
 
