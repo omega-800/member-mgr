@@ -1,8 +1,15 @@
+//! A tiny HTTP server that stores member submissions in SQLite.
+//!
+//! Submissions are sent as `application/x-www-form-urlencoded` POSTs to `/submit`.
+//! Bearer auth and an Altcha anti-bot challenge can be enabled; with the `mail`
+//! feature, a mail is sent for submissions containing an `email` field.
+
 use std::{collections::HashMap, error::Error};
 
 use rusqlite::{Connection, params_from_iter};
 use tiny_http::{Request, Response, Server, StatusCode};
 
+#[cfg(feature = "mail")]
 use crate::mail::MailConfig;
 
 #[cfg(feature = "altcha")]
@@ -11,6 +18,8 @@ mod altcha;
 #[cfg(feature = "mail")]
 mod mail;
 
+/// Server configuration, read from `MEMBER_MGR_*` (and, with the `mail` feature,
+/// `MAIL_CFG_*`) environment variables.
 pub struct Config {
     token: String,
     use_token: bool,
@@ -27,6 +36,10 @@ pub struct Config {
 }
 
 impl Config {
+    /// Builds the configuration from the environment.
+    ///
+    /// Missing optional vars fall back to their defaults. Missing required
+    /// feature-specific secrets (Altcha HMAC secrets) panic.
     pub fn new() -> Self {
         use std::env::var;
         Self {
@@ -39,20 +52,26 @@ impl Config {
             create_db: std::env::var("MEMBER_MGR_CREATE_DB").unwrap_or_else(|_| "yes".to_string())
                 == "yes",
 
+            #[cfg(feature = "altcha")]
             hmac_secret: std::env::var("MEMBER_MGR_ALTCHA_HMAC_SECRET")
                 .expect("MEMBER_MGR_ALTCHA_HMAC_SECRET must be set"),
+            #[cfg(feature = "altcha")]
             hmac_key_secret: std::env::var("MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET")
                 .expect("MEMBER_MGR_ALTCHA_HMAC_KEY_SECRET must be set"),
 
-            from: std::env::var("MEMBER_MGR_FROM").expect("MEMBER_MGR_FROM must be set"),
-            from_name: std::env::var("MEMBER_MGR_FROM_NAME")
-                .expect("MEMBER_MGR_FROM_NAME must be set"),
-            subject: std::env::var("MEMBER_MGR_SUBJECT").expect("MEMBER_MGR_SUBJECT must be set"),
-            body: std::env::var("MEMBER_MGR_BODY").expect("MEMBER_MGR_BODY must be set"),
-            smtp_username: std::env::var("MEMBER_MGR_SMTP_USERNAME")
-                .expect("MEMBER_MGR_SMTP_USERNAME must be set"),
-            smtp_password: std::env::var("MEMBER_MGR_SMTP_PASSWORD")
-                .expect("MEMBER_MGR_SMTP_PASSWORD must be set"),
+            #[cfg(feature = "mail")]
+            mail_configs: std::env::vars()
+                .filter_map(|(key, value)| {
+                    let name = key.strip_prefix("MAIL_CFG_")?.to_lowercase();
+                    match MailConfig::parse(&value) {
+                        Ok(config) => Some((name, config)),
+                        Err(err) => {
+                            eprintln!("[WARN!] ignoring MAIL_CFG_{name}: {err}");
+                            None
+                        }
+                    }
+                })
+                .collect(),
         }
     }
 }
@@ -90,10 +109,14 @@ fn main() {
     }
 }
 
+/// An error carrying an HTTP status code, an internal log message, and a
+/// client-facing message.
 #[derive(Debug)]
 pub struct SubmitErr(u16, String, String);
 
 impl SubmitErr {
+    /// Creates a new error with the given HTTP status code, internal log
+    /// message, and client-facing message.
     pub fn new(code: u16, internal_message: impl Into<String>, message: impl Into<String>) -> Self {
         Self(code, internal_message.into(), message.into())
     }
@@ -107,6 +130,7 @@ impl std::fmt::Display for SubmitErr {
 
 impl Error for SubmitErr {}
 
+/// Routes a single request to `/challenge` (with the `altcha` feature) or `/submit`.
 fn handle_request(mut request: Request, config: &Config) -> Result<(), Box<dyn Error>> {
     let authorized = !config.use_token
         || request
@@ -179,6 +203,14 @@ fn handle_request(mut request: Request, config: &Config) -> Result<(), Box<dyn E
                     config.create_db,
                 )?;
 
+                #[cfg(feature = "mail")]
+                if let Some(email) = fields.get("email") {
+                    let name = fields.get("name").cloned().unwrap_or_default();
+                    if let Err(err) = crate::mail::send_mail(config, &name, email, &fields) {
+                        eprintln!("[ERR!] mail to {email}: {err}");
+                    }
+                }
+
                 if config.log_info {
                     println!("[INFO] wrote: {fields:?}");
                 }
@@ -197,6 +229,8 @@ fn handle_request(mut request: Request, config: &Config) -> Result<(), Box<dyn E
     }
 }
 
+/// Inserts `data` as a row into the `members` table of the database at `db`,
+/// creating the table first if `create_db` is set. Returns the number of rows inserted.
 fn insert_sql(
     db: &str,
     data: &HashMap<String, String>,
@@ -227,10 +261,6 @@ fn insert_sql(
         columns.join(", "),
         placeholders.join(", "),
     );
-
-    // TODO:
-    // #[cfg(feature = "mail")]
-    // send_mail();
 
     db.execute(&sql, params_from_iter(values))
 }

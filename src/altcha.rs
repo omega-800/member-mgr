@@ -1,3 +1,6 @@
+//! Altcha anti-bot challenge: issues challenges at `/challenge` and verifies
+//! the `altchaToken` field on `/submit`.
+
 use std::{collections::HashMap, error::Error};
 
 use altcha::{
@@ -9,6 +12,7 @@ use tiny_http::{Request, Response};
 
 use crate::{Config, SubmitErr};
 
+/// Responds to `/challenge` with a new Altcha challenge as JSON.
 pub fn get_challenge(request: Request, config: &Config) -> Result<(), Box<dyn Error>> {
     let challenge = create_challenge(CreateChallengeOptions {
         algorithm: "PBKDF2/SHA-256".to_string(),
@@ -42,6 +46,12 @@ struct AltchaResult {
     invalid_signature: Option<bool>,
 }
 
+/// Verifies and removes the `altchaToken` field from the submitted form.
+///
+/// # Errors
+///
+/// Returns a [`SubmitErr`] with a 400 if no token was provided, or a 500 if the
+/// token cannot be decoded or its solution fails verification.
 pub fn post_submit(
     config: &Config,
     fields: &mut HashMap<String, String>,
